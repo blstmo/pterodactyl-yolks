@@ -6,7 +6,7 @@
     },
     "exported_at": "2024-12-30T13:23:37+01:00",
     "name": "Java Minecraft",
-    "author": "rjansengd@gmail.com",
+    "author": "info@blstmo.com",
     "description": "Minecraft is a game about placing blocks and going on adventures. Explore randomly generated worlds and build amazing things from the simplest of homes to the grandest of castles. Play in Creative Mode with unlimited resources or mine deep in Survival Mode, crafting weapons and armor to fend off dangerous mobs. Do all this alone or with friends.",
     "features": [
         "eula",
@@ -14,15 +14,15 @@
         "pid_limit"
     ],
     "docker_images": {
-        "Java 23": "ghcr.io\/mcjars\/pterodactyl-yolks:java_23",
-        "Java 22": "ghcr.io\/mcjars\/pterodactyl-yolks:java_22",
-        "Java 21": "ghcr.io\/mcjars\/pterodactyl-yolks:java_21",
-        "Java 19": "ghcr.io\/mcjars\/pterodactyl-yolks:java_19",
-        "Java 18": "ghcr.io\/mcjars\/pterodactyl-yolks:java_18",
-        "Java 17": "ghcr.io\/mcjars\/pterodactyl-yolks:java_17",
-        "Java 16": "ghcr.io\/mcjars\/pterodactyl-yolks:java_16",
-        "Java 11": "ghcr.io\/mcjars\/pterodactyl-yolks:java_11",
-        "Java 8": "ghcr.io\/mcjars\/pterodactyl-yolks:java_8"
+        "Java 23": "ghcr.io\/blstmo\/pterodactyl-yolks:java_23",
+        "Java 22": "ghcr.io\/blstmo\/pterodactyl-yolks:java_22",
+        "Java 21": "ghcr.io\/blstmo\/pterodactyl-yolks:java_21",
+        "Java 19": "ghcr.io\/blstmo\/pterodactyl-yolks:java_19",
+        "Java 18": "ghcr.io\/blstmo\/pterodactyl-yolks:java_18",
+        "Java 17": "ghcr.io\/blstmo\/pterodactyl-yolks:java_17",
+        "Java 16": "ghcr.io\/blstmo\/pterodactyl-yolks:java_16",
+        "Java 11": "ghcr.io\/blstmo\/pterodactyl-yolks:java_11",
+        "Java 8": "ghcr.io\/blstmo\/pterodactyl-yolks:java_8"
     },
     "file_denylist": [],
     "startup": "java -Dterminal.jline=false -Dterminal.ansi=true -Xms256M -Xmx$(({{SERVER_MEMORY}}*{{MAXIMUM_RAM}}\/100))M -jar {{SERVER_JARFILE}}",
@@ -178,6 +178,16 @@
             "user_viewable": false,
             "user_editable": false,
             "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "JVM Flags",
+            "description": "All startup flags can be modified except for Xms",
+            "env_variable": "JVM_FLAGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:\/^(?!.*-Xms).*$\/",
             "field_type": "text"
         }
     ]
