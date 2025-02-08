@@ -10,7 +10,7 @@ on:
       - os/**
 jobs:
   push:
-    name: "yolks:${{ matrix.os }}"
+    name: "os:${{ matrix.os }}"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
