@@ -10,12 +10,12 @@ on:
       - os/**
 jobs:
   push:
-    name: "os:${{ matrix.os }}"
+    name: "os:${{ matrix.tag }}"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os:
+        tag:
           - alpine
           - debian
           - ubuntu
@@ -32,8 +32,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v6
         with:
-          context: ./os/${{ matrix.os }}
-          file: ./os/${{ matrix.os }}/Dockerfile
+          context: ./os
+          file: ./os/${{ matrix.tag }}/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
