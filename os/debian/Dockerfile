@@ -1,5 +1,4 @@
 FROM         --platform=$TARGETOS/$TARGETARCH debian:bookworm-slim
-
 LABEL        author="Alex Chatham" maintainer="info@blstmo.com"
 
 LABEL        org.opencontainers.image.source="https://github.com/blstmo/pterodactyl-yolks"

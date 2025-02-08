@@ -10,12 +10,12 @@ on:
       - os/**
 jobs:
   push:
-    name: "os:${{ matrix.tag }}"
+    name: "yolks:${{ matrix.os }}"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        tag:
+        os:
           - alpine
           - debian
           - ubuntu
@@ -32,9 +32,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v6
         with:
-          context: ./os
-          file: ./os/${{ matrix.tag }}/Dockerfile
+          context: ./os/${{ matrix.os }}
+          file: ./os/${{ matrix.os }}/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/blstmo/os:${{ matrix.tag }}
+            ghcr.io/blstmo/os:${{ matrix.os }}
