@@ -1,21 +1,21 @@
-name: build os
+name: build os-install
 on:
   workflow_dispatch:
   schedule:
     - cron: "0 0 * * 1"
   push:
     branches:
-      - master
+      - main
     paths:
-      - os/**
+      - os-install/**
 jobs:
   push:
-    name: "yolks:${{ matrix.os }}"
+    name: "os-install:{{ matrix.tag }}"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os:
+        tag:
           - alpine
           - debian
           - ubuntu
@@ -32,9 +32,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v6
         with:
-          context: ./os/${{ matrix.os }}
-          file: ./os/${{ matrix.os }}/Dockerfile
+          context: ./os-install
+          file: ./os-install/${{ matrix.tag }}/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/blstmo/os:${{ matrix.tag }}
+            ghcr.io/blstmo/os-install:${{ matrix.tag }}
