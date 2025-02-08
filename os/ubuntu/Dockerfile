@@ -3,7 +3,6 @@ LABEL       author="Alex Chatham" maintainer="info@blstmo.com"
 LABEL       org.opencontainers.image.source="https://github.com/blstmo/pterodactyl-yolks"
 LABEL       org.opencontainers.image.licenses=MIT
 ENV         DEBIAN_FRONTEND=noninteractive
-
 RUN         apt update \
             && apt upgrade -y \
             && apt -y --no-install-recommends install ca-certificates curl git unzip zip tar jq \
