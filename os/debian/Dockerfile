@@ -11,8 +11,6 @@ RUN         apt update && apt upgrade -y \
 ██╔══██╗██║     ╚════██║   ██║   ██║╚██╔╝██║██║   ██║   ██║     ██║   ██║██║╚██╔╝██║\n\
 ██████╔╝███████╗███████║   ██║   ██║ ╚═╝ ██║╚██████╔╝██╗╚██████╗╚██████╔╝██║ ╚═╝ ██║\n\
 ╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚═╝     ╚═╝ ╚═════╝ ╚═╝ ╚═════╝ ╚═════╝ ╚═╝     ╚═╝\033[0m" > /etc/motd
-
-# Only install the needed steamcmd packages on the AMD64 build
 RUN         if [ "$(uname -m)" = "x86_64" ]; then \
                 dpkg --add-architecture i386 && \
                 apt update && \
