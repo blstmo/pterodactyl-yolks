@@ -1,27 +1,30 @@
-FROM        --platform=$TARGETOS/$TARGETARCH eclipse-temurin:21-jdk
+FROM --platform=$TARGETOS/$TARGETARCH ghcr.io/graalvm/jdk-community:20
 
-LABEL       author="Alex Chatham" maintainer="info@blstmo.com"
+LABEL author="Alex Chatham" maintainer="info@blstmo.com" \
+      org.opencontainers.image.source="https://github.com/blstmo/pterodactyl-yolks" \
+      org.opencontainers.image.licenses=MIT
 
-LABEL       org.opencontainers.image.source="https://github.com/blstmo/pterodactyl-yolks"
-LABEL       org.opencontainers.image.licenses=MIT
+# Remove unwanted binaries
+RUN rm -rf /usr/bin/dd \
+    && rm -rf /usr/bin/fallocate \
+    && rm -rf /usr/bin/truncate \
+    && rm -rf /usr/bin/xfs_mkfile
 
-RUN         rm -rf /usr/bin/dd \
-						&& rm -rf /usr/bin/fallocate \
-						&& rm -rf /usr/bin/truncate \
-						&& rm -rf /usr/bin/xfs_mkfile
+# Update and install curl using microdnf
+RUN microdnf update -y \
+    && microdnf install -y curl
 
-RUN         apt-get update -y \
-						&& apt-get install -y curl
+# Download MCAntiMalware.jar
+RUN curl -sSL https://github.com/OpticFusion1/MCAntiMalware/releases/latest/download/MCAntiMalware.jar -o /MCAntiMalware.jar
 
-RUN         curl -sSL https://github.com/OpticFusion1/MCAntiMalware/releases/latest/download/MCAntiMalware.jar \
-						-o /MCAntiMalware.jar
+# Install remaining packages and create the container user
+RUN microdnf update -y \
+    && microdnf install -y jq lsof ca-certificates openssl git tar sqlite fontconfig freetype tzdata iproute libstdc++ \
+    && useradd -d /home/container -m container
 
-RUN 				apt-get install -y jq lsof ca-certificates openssl git tar sqlite3 fontconfig libfreetype6 tzdata iproute2 libstdc++6 \
-						&& useradd -d /home/container -m container
+USER container
+ENV USER=container HOME=/home/container
+WORKDIR /home/container
 
-USER        container
-ENV         USER=container HOME=/home/container
-WORKDIR     /home/container
-
-COPY        ./../entrypoint.sh /entrypoint.sh
-CMD         [ "/bin/bash", "/entrypoint.sh" ]
+COPY ./../entrypoint.sh /entrypoint.sh
+CMD [ "/bin/bash", "/entrypoint.sh" ]
