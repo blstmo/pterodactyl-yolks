@@ -36,6 +36,9 @@ RUN         if [ ! "$(uname -m)" = "x86_64" ]; then \
                 rm libssl1.1_1.1.1f-1ubuntu2_arm64.deb; \
             fi
 
+# Remove fallocate binary for security
+RUN         rm -rf /usr/bin/fallocate
+
 ## Configure locale
 RUN          update-locale lang=en_US.UTF-8 \
              && dpkg-reconfigure --frontend noninteractive locales
