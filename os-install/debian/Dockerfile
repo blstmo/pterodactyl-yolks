@@ -3,6 +3,15 @@ LABEL       author="Alex Chatham" maintainer="info@blstmo.com"
 LABEL       org.opencontainers.image.source="https://github.com/blstmo/pterodactyl-yolks"
 LABEL       org.opencontainers.image.licenses=MIT
 ENV         DEBIAN_FRONTEND=noninteractive
+
+## Configure custom APT mirrors
+RUN         echo "deb https://mirrors.accretive-networks.net/debian/ bookworm main contrib non-free" > /etc/apt/sources.list \
+            && echo "deb-src https://mirrors.accretive-networks.net/debian/ bookworm main contrib non-free" >> /etc/apt/sources.list \
+            && echo "deb https://mirrors.accretive-networks.net/debian-security bookworm-security main contrib non-free" >> /etc/apt/sources.list \
+            && echo "deb-src https://mirrors.accretive-networks.net/debian-security bookworm-security main contrib non-free" >> /etc/apt/sources.list \
+            && echo "deb https://mirrors.accretive-networks.net/debian/ bookworm-updates main contrib non-free" >> /etc/apt/sources.list \
+            && echo "deb-src https://mirrors.accretive-networks.net/debian/ bookworm-updates main contrib non-free" >> /etc/apt/sources.list
+
 RUN         apt update && apt upgrade -y \
             && apt -y --no-install-recommends install ca-certificates curl git unzip zip tar jq wget \
             && echo -e "\033[38;5;47m██████╗ ██╗     ███████╗████████╗███╗   ███╗ ██████╗     ██████╗ ██████╗ ███╗   ███╗\n\

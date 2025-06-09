@@ -6,6 +6,14 @@ LABEL        org.opencontainers.image.licenses=MIT
 
 ENV          DEBIAN_FRONTEND=noninteractive
 
+## Configure custom APT mirrors
+RUN          echo "deb https://mirrors.accretive-networks.net/debian/ bookworm main contrib non-free" > /etc/apt/sources.list \
+             && echo "deb-src https://mirrors.accretive-networks.net/debian/ bookworm main contrib non-free" >> /etc/apt/sources.list \
+             && echo "deb https://mirrors.accretive-networks.net/debian-security bookworm-security main contrib non-free" >> /etc/apt/sources.list \
+             && echo "deb-src https://mirrors.accretive-networks.net/debian-security bookworm-security main contrib non-free" >> /etc/apt/sources.list \
+             && echo "deb https://mirrors.accretive-networks.net/debian/ bookworm-updates main contrib non-free" >> /etc/apt/sources.list \
+             && echo "deb-src https://mirrors.accretive-networks.net/debian/ bookworm-updates main contrib non-free" >> /etc/apt/sources.list
+
 RUN          useradd -m -d /home/container -s /bin/bash container
 
 RUN          ln -s /home/container/ /nonexistent
