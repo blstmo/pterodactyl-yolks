@@ -7,11 +7,6 @@ LABEL author="Alex Chatham" maintainer="info@blstmo.com" \
       org.opencontainers.image.source="https://github.com/blstmo/pterodactyl-yolks" \
       org.opencontainers.image.licenses=MIT
 
-# Remove unwanted binaries
-RUN rm -rf /usr/bin/dd \
-    && rm -rf /usr/bin/fallocate \
-    && rm -rf /usr/bin/truncate \
-    && rm -rf /usr/bin/xfs_mkfile
 
 # Install curl and clear cache
 RUN apt-get update -y && \
