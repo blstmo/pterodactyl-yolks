@@ -157,6 +157,16 @@
             "field_type": "text"
         },
         {
+            "name": "Hash-Based Malware Detection",
+            "description": "ALWAYS ENABLED: Hash-based malware detection automatically checks all JAR files against a database of known malicious MD5 and SHA256 hashes before server startup. The server will not start if malicious files are detected. This feature cannot be disabled.",
+            "env_variable": "HASH_MALWARE_CHECK",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": false,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
             "name": "Software",
             "description": "The Software thats installed when the server gets reinstalled, mainly for use with billing panels, not users. (check https://versions.mcjars.app/#model/types) for all types!",
             "env_variable": "SOFTWARE",
