@@ -22,65 +22,6 @@ java -version
 
 JAVA_MAJOR_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | awk -F '.' '{print $1}')
 
-# Hash-based malware detection (ALWAYS ENABLED)
-echo -e "${LOG_PREFIX} Checking for known malicious files..."
-HASH_DB_URL="https://raw.githubusercontent.com/blstmo/pterodactyl-yolks/main/malware-hashes.json"
-
-# Download the hash database
-HASH_DB=$(curl -s "$HASH_DB_URL")
-
-if [ -z "$HASH_DB" ]; then
-    echo -e "${LOG_PREFIX} Warning: Could not download malware hash database, skipping hash check..."
-else
-    # Extract MD5 and SHA256 hashes from JSON
-    MD5_HASHES=$(echo "$HASH_DB" | jq -r '.hashes.md5[]' 2>/dev/null)
-    SHA256_HASHES=$(echo "$HASH_DB" | jq -r '.hashes.sha256[]' 2>/dev/null)
-    
-    # Find all .jar files in the current directory
-    JAR_FILES=$(find . -maxdepth 3 -type f -name "*.jar" 2>/dev/null)
-    
-    if [ -n "$JAR_FILES" ]; then
-        MALWARE_FOUND=0
-        
-        for file in $JAR_FILES; do
-            # Calculate MD5 hash
-            FILE_MD5=$(md5sum "$file" 2>/dev/null | awk '{print $1}')
-            
-            # Check against MD5 blacklist
-            if [ -n "$FILE_MD5" ]; then
-                for hash in $MD5_HASHES; do
-                    if [ "$FILE_MD5" = "$hash" ]; then
-                        echo -e "${LOG_PREFIX} \033[1m\033[31mMALWARE DETECTED:\033[0m File '$file' matches known malicious MD5 hash: $hash"
-                        MALWARE_FOUND=1
-                    fi
-                done
-            fi
-            
-            # Calculate SHA256 hash
-            FILE_SHA256=$(sha256sum "$file" 2>/dev/null | awk '{print $1}')
-            
-            # Check against SHA256 blacklist
-            if [ -n "$FILE_SHA256" ]; then
-                for hash in $SHA256_HASHES; do
-                    if [ "$FILE_SHA256" = "$hash" ]; then
-                        echo -e "${LOG_PREFIX} \033[1m\033[31mMALWARE DETECTED:\033[0m File '$file' matches known malicious SHA256 hash: $hash"
-                        MALWARE_FOUND=1
-                    fi
-                done
-            fi
-        done
-        
-        if [ $MALWARE_FOUND -eq 1 ]; then
-            echo -e "${LOG_PREFIX} \033[1m\033[31mCRITICAL: Known malicious files detected. Server startup aborted.\033[0m"
-            exit 1
-        else
-            echo -e "${LOG_PREFIX} Hash check passed - no known malicious files detected"
-        fi
-    else
-        echo -e "${LOG_PREFIX} No JAR files found to check"
-    fi
-fi
-
 if [[ "$MALWARE_SCAN" == "1" ]]; then
     if [[ ! -f "/MCAntiMalware.jar" ]]; then
         echo -e "${LOG_PREFIX} Malware scanning is only available for Java 17 and above, skipping..."
