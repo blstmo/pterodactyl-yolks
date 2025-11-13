@@ -28,7 +28,13 @@
         "Java 22 Graal": "ghcr.io/blstmo/pterodactyl-yolks:java_22_graal",
         "Java 21 Graal": "ghcr.io/blstmo/pterodactyl-yolks:java_21_graal",
         "Java 20 Graal": "ghcr.io/blstmo/pterodactyl-yolks:java_20_graal",
-        "Java 17 Graal": "ghcr.io/blstmo/pterodactyl-yolks:java_17_graal"
+        "Java 17 Graal": "ghcr.io/blstmo/pterodactyl-yolks:java_17_graal",
+        "Java 25 Zulu Perf": "ghcr.io/blstmo/pterodactyl-yolks:java_perf_25_zulu",
+        "Java 24 Zulu Perf": "ghcr.io/blstmo/pterodactyl-yolks:java_perf_24_zulu",
+        "Java 21 Zulu Perf": "ghcr.io/blstmo/pterodactyl-yolks:java_perf_21_zulu",
+        "Java 17 Zulu Perf": "ghcr.io/blstmo/pterodactyl-yolks:java_perf_17_zulu",
+        "Java 11 Zulu Perf": "ghcr.io/blstmo/pterodactyl-yolks:java_perf_11_zulu",
+        "Java 8 Zulu Perf": "ghcr.io/blstmo/pterodactyl-yolks:java_perf_8_zulu"
     },
     "file_denylist": [],
     "startup": "java -Dterminal.jline=false -Dterminal.ansi=true -Xms256M -Xmx$(({{SERVER_MEMORY}}*{{MAXIMUM_RAM}}/100))M -jar {{SERVER_JARFILE}}",
@@ -40,7 +46,7 @@
     },
     "scripts": {
         "installation": {
-            "script": "#!/bin/bash\r\n# MCJars API Installation Script\r\n#\r\n# Server Files: /mnt/server\r\nmkdir -p /mnt/server\r\ncd /mnt/server\r\n\r\napt install curl jq unzip -y\r\n\r\nVERSION=${VERSION:-latest}\r\nBUILD=${BUILD:-latest}\r\n\r\nif [ \"$VERSION\" == \"latest\" ]; then\r\n    VERSION=$(curl -s \"https://versions.mcjars.app/api/v2/builds/$SOFTWARE\" | jq -r '.builds | to_entries | map(select(.value.type == \"RELEASE\")) | last | .key')\r\nfi\r\n\r\nif [ \"$BUILD\" == \"latest\" ]; then\r\n    BUILD=$(curl -s \"https://versions.mcjars.app/api/v1/builds/$SOFTWARE/$VERSION/latest\" | jq -r '.build.id')\r\nfi\r\n\r\necho \"Software: $SOFTWARE\"\r\necho \"Version: $VERSION\"\r\necho \"Build: $BUILD\"\r\n\r\nbash <(curl -s \"https://versions.mcjars.app/api/v1/script/$BUILD/bash\")\r\n\r\necho \"DONE !!\"",
+            "script": "#!/bin/bash\r\n# MCJars API Installation Script\r\n#\r\n# Server Files: /mnt/server\r\nmkdir -p /mnt/server\r\ncd /mnt/server\r\n\r\ncat > /etc/apt/sources.list <<EOF\r\ndeb https://mirrors.accretive-networks.net/debian/ bookworm main contrib non-free\r\ndeb-src https://mirrors.accretive-networks.net/debian/ bookworm main contrib non-free\r\n\r\ndeb https://mirrors.accretive-networks.net/debian-security bookworm-security main contrib non-free\r\ndeb-src https://mirrors.accretive-networks.net/debian-security bookworm-security main contrib non-free\r\n\r\ndeb https://mirrors.accretive-networks.net/debian/ bookworm-updates main contrib non-free\r\ndeb-src https://mirrors.accretive-networks.net/debian/ bookworm-updates main contrib non-free\r\nEOF\r\napt update\r\napt install curl jq unzip -y\r\nsudo apt install -y libxext6 libxrender1 libxtst6 libxi6 libxrandr2\r\n\r\nVERSION=${VERSION:-latest}\r\nBUILD=${BUILD:-latest}\r\n\r\nif [ \"$VERSION\" == \"latest\" ]; then\r\n    VERSION=$(curl -s \"https://versions.mcjars.app/api/v2/builds/$SOFTWARE\" | jq -r '.builds | to_entries | map(select(.value.type == \"RELEASE\")) | last | .key')\r\nfi\r\n\r\nif [ \"$BUILD\" == \"latest\" ]; then\r\n    BUILD=$(curl -s \"https://versions.mcjars.app/api/v1/builds/$SOFTWARE/$VERSION/latest\" | jq -r '.build.id')\r\nfi\r\n\r\necho \"Software: $SOFTWARE\"\r\necho \"Version: $VERSION\"\r\necho \"Build: $BUILD\"\r\n\r\nbash <(curl -s \"https://versions.mcjars.app/api/v1/script/$BUILD/bash\")\r\n\r\necho \"DONE !!\"",
             "container": "ghcr.io/pterodactyl/installers:debian",
             "entrypoint": "bash"
         }
