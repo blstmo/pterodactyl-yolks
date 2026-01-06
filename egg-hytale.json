@@ -1,0 +1,120 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2024-12-30T13:23:37+01:00",
+    "name": "Java Hytale",
+    "author": "info@blstmo.com",
+    "description": "Hytale is an upcoming sandbox game that combines the best elements of the games you know and love to deliver an accessible, action-packed experience. Build, fight, and adventure your way through an epic fantasy world.",
+    "features": [
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 17": "ghcr.io/blstmo/pterodactyl-yolks:hytale_17",
+        "Java 19": "ghcr.io/blstmo/pterodactyl-yolks:hytale_19",
+        "Java 21": "ghcr.io/blstmo/pterodactyl-yolks:hytale_21",
+        "Java 24": "ghcr.io/blstmo/pterodactyl-yolks:hytale_24",
+        "Java 25": "ghcr.io/blstmo/pterodactyl-yolks:hytale_25"
+    },
+    "file_denylist": [],
+    "startup": "java -Dterminal.jline=false -Dterminal.ansi=true -Xms256M -Xmx$(({{SERVER_MEMORY}}*{{MAXIMUM_RAM}}/100))M -jar {{SERVER_JARFILE}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\r\n    \"done\": [\r\n        \"Server started\",\r\n        \"Listening on\",\r\n        \"Server listening on\"\r\n    ]\r\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\r\n# TODO: Add Hytale server installation script once download URL is available",
+            "container": "ghcr.io/pterodactyl/installers:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server Jar File",
+            "description": "The name of the server jarfile to run the server with.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "hytale-server.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Additional Flags",
+            "description": "This allows switching to additional flags like Aikar's Flags, recommended for usage on all bukkit-based Softwares (for example Paper, Purpur, ...)",
+            "env_variable": "ADDITIONAL_FLAGS",
+            "default_value": "None",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:None,Aikar's Flags",
+            "field_type": "text"
+        },
+        {
+            "name": "Maximum Ram Percentage",
+            "description": "Decide how much of your servers ram to allocate for Hytale usage.",
+            "env_variable": "MAXIMUM_RAM",
+            "default_value": "90",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|int|min:50|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Log Prefix (Admin Only)",
+            "description": "",
+            "env_variable": "LOG_PREFIX",
+            "default_value": "\\033[1m\\033[33mcontainer@pterodactyl~\\033[0m",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Java Agent",
+            "description": "ADVANCED FEATURE: Set a custom java agent to use, useful for SWM or similar.",
+            "env_variable": "JAVA_AGENT",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Override Startup",
+            "description": "ADVANCED FEATURE: Override the displayed startup command to support all other variables, contact support to change.",
+            "env_variable": "OVERRIDE_STARTUP",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": false,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "SIMD Operations Support",
+            "description": "Add Support for SIMD Operations by adding --add-modules=jdk.incubator.vector, used in forks like Pufferfish or Purpur for improved map rendering performance. (Java 16-21)",
+            "env_variable": "SIMD_OPERATIONS",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "JVM Flags",
+            "description": "All startup flags can be modified except for Xms",
+            "env_variable": "JVM_FLAGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|regex:/^(?!.*-Xms).*$/",
+            "field_type": "text"
+        }
+    ]
+}
+
