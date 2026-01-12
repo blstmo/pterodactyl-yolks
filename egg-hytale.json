@@ -27,7 +27,7 @@
     },
     "scripts": {
         "installation": {
-            "script": "#!/bin/bash\r\napt-get update\r\napt-get install -y curl unzip\r\n\r\ncd /mnt/server\r\n\r\necho \"Downloading hytale-downloader...\"\r\ncurl -sSL -o hytale-downloader.zip https://downloader.hytale.com/hytale-downloader.zip\r\n\r\nif [ ! -f \"hytale-downloader.zip\" ]; then\r\n    echo \"ERROR: Failed to download hytale-downloader.zip\"\r\n    exit 1\r\nfi\r\n\r\nunzip -o hytale-downloader.zip\r\nrm -f hytale-downloader.zip\r\nchmod +x ./hytale-downloader/hytale-downloader-linux-amd64\r\n\r\necho \"Downloading Hytale Server...\"\r\n./hytale-downloader/hytale-downloader-linux-amd64\r\n\r\necho \"Installation complete.\"",
+            "script": "#!/bin/bash\r\ncd /mnt/server\r\n\r\necho \"Downloading hytale-downloader...\"\r\ncurl -sSL -o hytale-downloader.zip https://downloader.hytale.com/hytale-downloader.zip\r\n\r\nif [ ! -f \"hytale-downloader.zip\" ]; then\r\n    echo \"ERROR: Failed to download hytale-downloader.zip\"\r\n    exit 1\r\nfi\r\n\r\nunzip -o hytale-downloader.zip\r\nrm -f hytale-downloader.zip\r\nchmod +x ./hytale-downloader-linux-amd64\r\n\r\necho \"Downloading Hytale Server...\"\r\n./hytale-downloader-linux-amd64\r\n\r\necho \"Installation complete.\"",
             "container": "ghcr.io/pterodactyl/installers:debian",
             "entrypoint": "bash"
         }

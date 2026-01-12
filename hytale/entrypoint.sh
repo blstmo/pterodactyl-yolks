@@ -20,7 +20,7 @@ JVM_FLAGS=${JVM_FLAGS:-"-XX:+UseG1GC"}
 HYTALE_PATCHLINE=${HYTALE_PATCHLINE:-""}
 AUTH_WAIT=${AUTH_WAIT:-"15"}
 
-DOWNLOADER_PATH="./hytale-downloader/hytale-downloader-linux-amd64"
+DOWNLOADER_PATH="./hytale-downloader-linux-amd64"
 DOWNLOADER_URL="https://downloader.hytale.com/hytale-downloader.zip"
 
 # Function to download the hytale-downloader
@@ -28,7 +28,6 @@ download_hytale_downloader() {
     echo "Downloading hytale-downloader..."
     curl -sSL -o hytale-downloader.zip "$DOWNLOADER_URL"
     if [ -f "hytale-downloader.zip" ]; then
-        rm -rf hytale-downloader
         unzip -o hytale-downloader.zip
         rm -f hytale-downloader.zip
         chmod +x "$DOWNLOADER_PATH"
