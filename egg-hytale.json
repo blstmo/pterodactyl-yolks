@@ -4,32 +4,30 @@
         "version": "PTDL_v2",
         "update_url": null
     },
-    "exported_at": "2024-12-30T13:23:37+01:00",
-    "name": "Java Hytale",
+    "exported_at": "2026-01-13T00:00:00+00:00",
+    "name": "Hytale",
     "author": "info@blstmo.com",
-    "description": "Hytale is an upcoming sandbox game that combines the best elements of the games you know and love to deliver an accessible, action-packed experience. Build, fight, and adventure your way through an epic fantasy world.",
+    "description": "Hytale is a sandbox game by Hypixel Studios that combines building, fighting, and adventure in an epic fantasy world. This egg supports dedicated Hytale servers following the official Hytale Server Manual.",
     "features": [
         "java_version",
         "pid_limit"
     ],
     "docker_images": {
-        "Java 17": "ghcr.io/blstmo/pterodactyl-yolks:hytale_17",
-        "Java 19": "ghcr.io/blstmo/pterodactyl-yolks:hytale_19",
-        "Java 21": "ghcr.io/blstmo/pterodactyl-yolks:hytale_21",
+        "Java 25 (Recommended)": "ghcr.io/blstmo/pterodactyl-yolks:hytale_25",
         "Java 24": "ghcr.io/blstmo/pterodactyl-yolks:hytale_24",
-        "Java 25": "ghcr.io/blstmo/pterodactyl-yolks:hytale_25"
+        "Java 21": "ghcr.io/blstmo/pterodactyl-yolks:hytale_21"
     },
     "file_denylist": [],
-    "startup": "java -Dterminal.jline=false -Dterminal.ansi=true -Xms256M -Xmx$(({{SERVER_MEMORY}}*{{MAXIMUM_RAM}}/100))M -jar {{SERVER_JARFILE}}",
+    "startup": "java -Xms256M -Xmx$(({{SERVER_MEMORY}}*{{MAXIMUM_RAM}}/100))M {{JVM_FLAGS}} -jar {{SERVER_JARFILE}} --nogui --port {{SERVER_PORT}} --world-dir {{WORLD_DIR}} --config {{CONFIG_FILE}}",
     "config": {
-        "files": "{}",
-        "startup": "{\r\n    \"done\": [\r\n        \"Server started\",\r\n        \"Listening on\",\r\n        \"Server listening on\"\r\n    ]\r\n}",
+        "files": "{\r\n    \"server.properties\": {\r\n        \"parser\": \"properties\",\r\n        \"find\": {\r\n            \"server-port\": \"{{server.build.default.port}}\"\r\n        }\r\n    }\r\n}",
+        "startup": "{\r\n    \"done\": [\r\n        \"Server started\",\r\n        \"Listening on\",\r\n        \"Server listening on\",\r\n        \"Server is ready\"\r\n    ]\r\n}",
         "logs": "{}",
-        "stop": "^C"
+        "stop": "stop"
     },
     "scripts": {
         "installation": {
-            "script": "#!/bin/bash\r\n# TODO: Add Hytale server installation script once download URL is available",
+            "script": "#!/bin/bash\r\napt-get update\r\napt-get install -y curl jq unzip\r\n\r\ncd /mnt/server\r\n\r\n# Download hytale-downloader tool\r\necho \"Downloading Hytale Downloader tool...\"\r\ncurl -sSL -o hytale-downloader.zip https://downloader.hytale.com/hytale-downloader.zip\r\nunzip -o hytale-downloader.zip -d hytale-downloader\r\nchmod +x hytale-downloader/hytale-downloader-linux-amd64\r\nrm hytale-downloader.zip\r\n\r\n# Create default server.properties if it doesn't exist\r\nif [ ! -f \"server.properties\" ]; then\r\n    cat > server.properties << 'EOF'\r\n# Hytale Server Properties\r\nserver-name=Hytale Server\r\nserver-port=5520\r\nmax-players=20\r\nview-distance=10\r\ngamemode=survival\r\ndifficulty=normal\r\npvp=true\r\nallow-flight=false\r\nenable-whitelist=false\r\nenable-query=true\r\nEOF\r\n    echo \"Created default server.properties\"\r\nfi\r\n\r\n# Create world directory if it doesn't exist\r\nmkdir -p world\r\n\r\necho \"-----------------------------------------\"\r\necho \"Hytale Server Installation\"\r\necho \"-----------------------------------------\"\r\necho \"\"\r\necho \"The Hytale Downloader tool has been installed to:\"\r\necho \"  ./hytale-downloader/hytale-downloader-linux-amd64\"\r\necho \"\"\r\necho \"To download server files, run in the console:\"\r\necho \"  ./hytale-downloader/hytale-downloader-linux-amd64\"\r\necho \"\"\r\necho \"First-time setup: You'll see a URL and authorization code.\"\r\necho \"Open the URL in a browser to authenticate with your Hytale account.\"\r\necho \"\"\r\necho \"After downloading, extract the Server folder contents and Assets.zip\"\r\necho \"to your server directory.\"\r\necho \"\"\r\necho \"Refer to: https://support.hytale.com/hc/en-us/articles/45326769420827-Hytale-Server-Manual\"\r\necho \"-----------------------------------------\"",
             "container": "ghcr.io/pterodactyl/installers:debian",
             "entrypoint": "bash"
         }
@@ -37,7 +35,7 @@
     "variables": [
         {
             "name": "Server Jar File",
-            "description": "The name of the server jarfile to run the server with.",
+            "description": "The name of the Hytale server jar file.",
             "env_variable": "SERVER_JARFILE",
             "default_value": "hytale-server.jar",
             "user_viewable": true,
@@ -46,75 +44,64 @@
             "field_type": "text"
         },
         {
-            "name": "Additional Flags",
-            "description": "This allows switching to additional flags like Aikar's Flags, recommended for usage on all bukkit-based Softwares (for example Paper, Purpur, ...)",
-            "env_variable": "ADDITIONAL_FLAGS",
-            "default_value": "None",
+            "name": "Server Port",
+            "description": "The port the Hytale server will listen on. Default is 5520.",
+            "env_variable": "SERVER_PORT",
+            "default_value": "5520",
+            "user_viewable": true,
+            "user_editable": false,
+            "rules": "required|integer|between:1024,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "World Directory",
+            "description": "The directory where world data is stored.",
+            "env_variable": "WORLD_DIR",
+            "default_value": "world",
             "user_viewable": true,
             "user_editable": true,
-            "rules": "required|string|in:None,Aikar's Flags",
+            "rules": "required|regex:/^[\\w\\d._-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Config File",
+            "description": "The server configuration file name.",
+            "env_variable": "CONFIG_FILE",
+            "default_value": "server.properties",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^[\\w\\d._-]+$/",
             "field_type": "text"
         },
         {
             "name": "Maximum Ram Percentage",
-            "description": "Decide how much of your servers ram to allocate for Hytale usage.",
+            "description": "Percentage of allocated server RAM to use for Hytale (50-100%).",
             "env_variable": "MAXIMUM_RAM",
             "default_value": "90",
             "user_viewable": true,
             "user_editable": true,
-            "rules": "required|int|min:50|max:100",
+            "rules": "required|integer|between:50,100",
+            "field_type": "text"
+        },
+        {
+            "name": "JVM Flags",
+            "description": "Additional JVM flags. The G1 garbage collector (-XX:+UseG1GC) is recommended for better performance.",
+            "env_variable": "JVM_FLAGS",
+            "default_value": "-XX:+UseG1GC",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
             "field_type": "text"
         },
         {
             "name": "Log Prefix (Admin Only)",
-            "description": "",
+            "description": "Log prefix for container output.",
             "env_variable": "LOG_PREFIX",
             "default_value": "\\033[1m\\033[33mcontainer@pterodactyl~\\033[0m",
             "user_viewable": false,
             "user_editable": false,
             "rules": "required|string",
             "field_type": "text"
-        },
-        {
-            "name": "Java Agent",
-            "description": "ADVANCED FEATURE: Set a custom java agent to use, useful for SWM or similar.",
-            "env_variable": "JAVA_AGENT",
-            "default_value": "",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "nullable|string|regex:/^([\\w\\d._-]+)(\\.jar)$/",
-            "field_type": "text"
-        },
-        {
-            "name": "Override Startup",
-            "description": "ADVANCED FEATURE: Override the displayed startup command to support all other variables, contact support to change.",
-            "env_variable": "OVERRIDE_STARTUP",
-            "default_value": "1",
-            "user_viewable": true,
-            "user_editable": false,
-            "rules": "required|boolean",
-            "field_type": "text"
-        },
-        {
-            "name": "SIMD Operations Support",
-            "description": "Add Support for SIMD Operations by adding --add-modules=jdk.incubator.vector, used in forks like Pufferfish or Purpur for improved map rendering performance. (Java 16-21)",
-            "env_variable": "SIMD_OPERATIONS",
-            "default_value": "0",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "required|boolean",
-            "field_type": "text"
-        },
-        {
-            "name": "JVM Flags",
-            "description": "All startup flags can be modified except for Xms",
-            "env_variable": "JVM_FLAGS",
-            "default_value": "",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "nullable|string|regex:/^(?!.*-Xms).*$/",
-            "field_type": "text"
         }
     ]
 }
-
