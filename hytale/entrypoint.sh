@@ -1,83 +1,86 @@
 #!/bin/bash
 
 # Hytale Server Entrypoint
-# Based on the official Hytale Server Manual
-# https://support.hytale.com/hc/en-us/articles/45326769420827-Hytale-Server-Manual
 
-# Default the TZ environment variable to UTC.
 TZ=${TZ:-UTC}
 export TZ
 
-# Set environment variable that holds the Internal Docker IP
 INTERNAL_IP=$(ip route get 1 | awk '{print $(NF-2);exit}')
 export INTERNAL_IP
 
-# Check if LOG_PREFIX is set
-if [ -z "$LOG_PREFIX" ]; then
-    LOG_PREFIX="\033[1m\033[33mcontainer@pterodactyl~\033[0m"
-fi
-
-# Switch to the container's working directory
 cd /home/container || exit 1
 
-# Print Java version
-printf "${LOG_PREFIX} java --version\n"
-java --version
-
-# Verify Java 25 is installed (recommended for Hytale)
-JAVA_MAJOR_VERSION=$(java --version 2>&1 | head -1 | awk '{print $2}' | cut -d'.' -f1)
-if [[ "$JAVA_MAJOR_VERSION" -lt 25 ]]; then
-    echo -e "${LOG_PREFIX} \033[33mWarning: Hytale servers require Java 25. Current version: $JAVA_MAJOR_VERSION\033[0m"
-fi
-
-# Set default values if not provided
-SERVER_JARFILE=${SERVER_JARFILE:-"hytale-server.jar"}
-SERVER_PORT=${SERVER_PORT:-"5520"}
-WORLD_DIR=${WORLD_DIR:-"world"}
-CONFIG_FILE=${CONFIG_FILE:-"server.properties"}
+# Set default values
+SERVER_JARFILE=${SERVER_JARFILE:-"HytaleServer.jar"}
+HYTALE_PORT=${HYTALE_PORT:-"5520"}
+HYTALE_WORLD=${HYTALE_WORLD:-"world"}
+HYTALE_CONFIG=${HYTALE_CONFIG:-"server.properties"}
 MAXIMUM_RAM=${MAXIMUM_RAM:-"90"}
 JVM_FLAGS=${JVM_FLAGS:-"-XX:+UseG1GC"}
+HYTALE_PATCHLINE=${HYTALE_PATCHLINE:-""}
+AUTH_WAIT=${AUTH_WAIT:-"15"}
 
-# Check if server jar exists
+DOWNLOADER_PATH="./hytale-downloader/hytale-downloader-linux-amd64"
+DOWNLOADER_URL="https://downloader.hytale.com/hytale-downloader.zip"
+
+# Function to download the hytale-downloader
+download_hytale_downloader() {
+    echo "Downloading hytale-downloader..."
+    curl -sSL -o hytale-downloader.zip "$DOWNLOADER_URL"
+    if [ -f "hytale-downloader.zip" ]; then
+        rm -rf hytale-downloader
+        unzip -o hytale-downloader.zip
+        rm -f hytale-downloader.zip
+        chmod +x "$DOWNLOADER_PATH"
+        echo "hytale-downloader installed."
+    else
+        echo "ERROR: Failed to download hytale-downloader"
+        exit 1
+    fi
+}
+
+# Check if downloader exists, if not download it
+if [ ! -f "$DOWNLOADER_PATH" ]; then
+    echo "hytale-downloader not found, downloading..."
+    download_hytale_downloader
+fi
+
+# Check for downloader updates
+echo "Checking for updates..."
+$DOWNLOADER_PATH -check-update
+
+# Download/update server if jar is missing
 if [ ! -f "$SERVER_JARFILE" ]; then
-    echo -e "${LOG_PREFIX} \033[31mError: Server jar file '$SERVER_JARFILE' not found!\033[0m"
-    echo -e "${LOG_PREFIX} Please upload the Hytale server files."
-    echo -e "${LOG_PREFIX} Refer to: https://support.hytale.com/hc/en-us/articles/45326769420827-Hytale-Server-Manual"
+    echo "Server JAR not found, downloading..."
+    if [ -n "$HYTALE_PATCHLINE" ]; then
+        $DOWNLOADER_PATH -patchline "$HYTALE_PATCHLINE"
+    else
+        $DOWNLOADER_PATH
+    fi
+fi
+
+# Verify server jar exists
+if [ ! -f "$SERVER_JARFILE" ]; then
+    echo "ERROR: Failed to download $SERVER_JARFILE"
     exit 1
 fi
 
-# Create world directory if it doesn't exist
-if [ ! -d "$WORLD_DIR" ]; then
-    echo -e "${LOG_PREFIX} Creating world directory: $WORLD_DIR"
-    mkdir -p "$WORLD_DIR"
-fi
-
-# Calculate memory allocation
+# Calculate memory
 SERVER_MEMORY_REAL=$((SERVER_MEMORY * MAXIMUM_RAM / 100))
 
-# Build the startup command following Hytale Server Manual guidelines
-STARTUP_CMD="java"
+# Build startup command
+STARTUP_CMD="java -Xms256M -Xmx${SERVER_MEMORY_REAL}M"
+[ -n "$JVM_FLAGS" ] && STARTUP_CMD+=" $JVM_FLAGS"
+STARTUP_CMD+=" -jar $SERVER_JARFILE --nogui --port $HYTALE_PORT --world-dir $HYTALE_WORLD --config $HYTALE_CONFIG"
 
-# Add memory settings
-STARTUP_CMD+=" -Xms256M -Xmx${SERVER_MEMORY_REAL}M"
+echo "Starting: $STARTUP_CMD"
 
-# Add JVM flags (G1GC recommended)
-if [ -n "$JVM_FLAGS" ]; then
-    STARTUP_CMD+=" $JVM_FLAGS"
-fi
-
-# Add the jar file
-STARTUP_CMD+=" -jar $SERVER_JARFILE"
-
-# Add Hytale-specific arguments
-STARTUP_CMD+=" --nogui"
-STARTUP_CMD+=" --port $SERVER_PORT"
-STARTUP_CMD+=" --world-dir $WORLD_DIR"
-STARTUP_CMD+=" --config $CONFIG_FILE"
-
-# Display the command we're running
-printf "${LOG_PREFIX} %s\n" "$STARTUP_CMD"
-
-# Execute the server
+# Auto-auth: wait for server, check status, login if needed, then pass through stdin
 # shellcheck disable=SC2086
-exec env ${STARTUP_CMD}
+{
+    sleep "$AUTH_WAIT"
+    echo "/auth status"
+    sleep 2
+    echo "/auth login device"
+    cat
+} | exec $STARTUP_CMD

@@ -13,12 +13,12 @@
         "pid_limit"
     ],
     "docker_images": {
-        "Java 25 (Recommended)": "ghcr.io/blstmo/pterodactyl-yolks:hytale_25",
+        "Java 25": "ghcr.io/blstmo/pterodactyl-yolks:hytale_25",
         "Java 24": "ghcr.io/blstmo/pterodactyl-yolks:hytale_24",
         "Java 21": "ghcr.io/blstmo/pterodactyl-yolks:hytale_21"
     },
     "file_denylist": [],
-    "startup": "java -Xms256M -Xmx$(({{SERVER_MEMORY}}*{{MAXIMUM_RAM}}/100))M {{JVM_FLAGS}} -jar {{SERVER_JARFILE}} --nogui --port {{SERVER_PORT}} --world-dir {{WORLD_DIR}} --config {{CONFIG_FILE}}",
+    "startup": "java -Xms256M -Xmx$(({{SERVER_MEMORY}}*{{MAXIMUM_RAM}}/100))M {{JVM_FLAGS}} -jar {{SERVER_JARFILE}} --nogui --port {{HYTALE_PORT}} --world-dir {{HYTALE_WORLD}} --config {{HYTALE_CONFIG}}",
     "config": {
         "files": "{\r\n    \"server.properties\": {\r\n        \"parser\": \"properties\",\r\n        \"find\": {\r\n            \"server-port\": \"{{server.build.default.port}}\"\r\n        }\r\n    }\r\n}",
         "startup": "{\r\n    \"done\": [\r\n        \"Server started\",\r\n        \"Listening on\",\r\n        \"Server listening on\",\r\n        \"Server is ready\"\r\n    ]\r\n}",
@@ -27,7 +27,7 @@
     },
     "scripts": {
         "installation": {
-            "script": "#!/bin/bash\r\napt-get update\r\napt-get install -y curl jq unzip\r\n\r\ncd /mnt/server\r\n\r\n# Download hytale-downloader tool\r\necho \"Downloading Hytale Downloader tool...\"\r\ncurl -sSL -o hytale-downloader.zip https://downloader.hytale.com/hytale-downloader.zip\r\nunzip -o hytale-downloader.zip -d hytale-downloader\r\nchmod +x hytale-downloader/hytale-downloader-linux-amd64\r\nrm hytale-downloader.zip\r\n\r\n# Create default server.properties if it doesn't exist\r\nif [ ! -f \"server.properties\" ]; then\r\n    cat > server.properties << 'EOF'\r\n# Hytale Server Properties\r\nserver-name=Hytale Server\r\nserver-port=5520\r\nmax-players=20\r\nview-distance=10\r\ngamemode=survival\r\ndifficulty=normal\r\npvp=true\r\nallow-flight=false\r\nenable-whitelist=false\r\nenable-query=true\r\nEOF\r\n    echo \"Created default server.properties\"\r\nfi\r\n\r\n# Create world directory if it doesn't exist\r\nmkdir -p world\r\n\r\necho \"-----------------------------------------\"\r\necho \"Hytale Server Installation\"\r\necho \"-----------------------------------------\"\r\necho \"\"\r\necho \"The Hytale Downloader tool has been installed to:\"\r\necho \"  ./hytale-downloader/hytale-downloader-linux-amd64\"\r\necho \"\"\r\necho \"To download server files, run in the console:\"\r\necho \"  ./hytale-downloader/hytale-downloader-linux-amd64\"\r\necho \"\"\r\necho \"First-time setup: You'll see a URL and authorization code.\"\r\necho \"Open the URL in a browser to authenticate with your Hytale account.\"\r\necho \"\"\r\necho \"After downloading, extract the Server folder contents and Assets.zip\"\r\necho \"to your server directory.\"\r\necho \"\"\r\necho \"Refer to: https://support.hytale.com/hc/en-us/articles/45326769420827-Hytale-Server-Manual\"\r\necho \"-----------------------------------------\"",
+            "script": "#!/bin/bash\r\napt-get update\r\napt-get install -y curl unzip\r\n\r\ncd /mnt/server\r\n\r\necho \"Downloading hytale-downloader...\"\r\ncurl -sSL -o hytale-downloader.zip https://downloader.hytale.com/hytale-downloader.zip\r\n\r\nif [ ! -f \"hytale-downloader.zip\" ]; then\r\n    echo \"ERROR: Failed to download hytale-downloader.zip\"\r\n    exit 1\r\nfi\r\n\r\nunzip -o hytale-downloader.zip\r\nrm -f hytale-downloader.zip\r\nchmod +x ./hytale-downloader/hytale-downloader-linux-amd64\r\n\r\necho \"Downloading Hytale Server...\"\r\n./hytale-downloader/hytale-downloader-linux-amd64\r\n\r\necho \"Installation complete.\"",
             "container": "ghcr.io/pterodactyl/installers:debian",
             "entrypoint": "bash"
         }
@@ -37,7 +37,7 @@
             "name": "Server Jar File",
             "description": "The name of the Hytale server jar file.",
             "env_variable": "SERVER_JARFILE",
-            "default_value": "hytale-server.jar",
+            "default_value": "HytaleServer.jar",
             "user_viewable": true,
             "user_editable": true,
             "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
@@ -46,31 +46,31 @@
         {
             "name": "Server Port",
             "description": "The port the Hytale server will listen on. Default is 5520.",
-            "env_variable": "SERVER_PORT",
+            "env_variable": "HYTALE_PORT",
             "default_value": "5520",
             "user_viewable": true,
             "user_editable": false,
-            "rules": "required|integer|between:1024,65535",
+            "rules": "required|string",
             "field_type": "text"
         },
         {
             "name": "World Directory",
             "description": "The directory where world data is stored.",
-            "env_variable": "WORLD_DIR",
+            "env_variable": "HYTALE_WORLD",
             "default_value": "world",
             "user_viewable": true,
             "user_editable": true,
-            "rules": "required|regex:/^[\\w\\d._-]+$/",
+            "rules": "required|string|max:50",
             "field_type": "text"
         },
         {
             "name": "Config File",
             "description": "The server configuration file name.",
-            "env_variable": "CONFIG_FILE",
+            "env_variable": "HYTALE_CONFIG",
             "default_value": "server.properties",
             "user_viewable": true,
             "user_editable": true,
-            "rules": "required|regex:/^[\\w\\d._-]+$/",
+            "rules": "required|string|max:50",
             "field_type": "text"
         },
         {
@@ -80,7 +80,7 @@
             "default_value": "90",
             "user_viewable": true,
             "user_editable": true,
-            "rules": "required|integer|between:50,100",
+            "rules": "required|int|min:50|max:100",
             "field_type": "text"
         },
         {
@@ -91,6 +91,16 @@
             "user_viewable": true,
             "user_editable": true,
             "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Patchline",
+            "description": "Download channel for Hytale server. Leave empty for stable release, or set to 'pre-release' for pre-release builds.",
+            "env_variable": "HYTALE_PATCHLINE",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:50",
             "field_type": "text"
         },
         {
