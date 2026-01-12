@@ -18,7 +18,7 @@
         "Java 21": "ghcr.io/blstmo/pterodactyl-yolks:hytale_21"
     },
     "file_denylist": [],
-    "startup": "java -Xms256M -Xmx$(({{SERVER_MEMORY}}*{{MAXIMUM_RAM}}/100))M {{JVM_FLAGS}} -jar {{SERVER_JARFILE}} --nogui --port {{HYTALE_PORT}} --world-dir {{HYTALE_WORLD}} --config {{HYTALE_CONFIG}}",
+    "startup": "java -Xms256M -Xmx$(({{SERVER_MEMORY}}*{{MAXIMUM_RAM}}/100))M {{JVM_FLAGS}} -jar {{SERVER_JARFILE}} --nogui --port {{SERVER_PORT}} --world-dir {{HYTALE_WORLD}} --config {{HYTALE_CONFIG}}",
     "config": {
         "files": "{\r\n    \"server.properties\": {\r\n        \"parser\": \"properties\",\r\n        \"find\": {\r\n            \"server-port\": \"{{server.build.default.port}}\"\r\n        }\r\n    }\r\n}",
         "startup": "{\r\n    \"done\": [\r\n        \"Server started\",\r\n        \"Listening on\",\r\n        \"Server listening on\",\r\n        \"Server is ready\"\r\n    ]\r\n}",
@@ -41,16 +41,6 @@
             "user_viewable": true,
             "user_editable": true,
             "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
-            "field_type": "text"
-        },
-        {
-            "name": "Server Port",
-            "description": "The port the Hytale server will listen on. Default is 5520.",
-            "env_variable": "HYTALE_PORT",
-            "default_value": "5520",
-            "user_viewable": true,
-            "user_editable": false,
-            "rules": "required|string",
             "field_type": "text"
         },
         {

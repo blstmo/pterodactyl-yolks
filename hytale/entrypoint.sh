@@ -12,7 +12,7 @@ cd /home/container || exit 1
 
 # Set default values
 SERVER_JARFILE=${SERVER_JARFILE:-"HytaleServer.jar"}
-HYTALE_PORT=${HYTALE_PORT:-"5520"}
+SERVER_PORT=${SERVER_PORT:-"5520"}
 HYTALE_WORLD=${HYTALE_WORLD:-"world"}
 HYTALE_CONFIG=${HYTALE_CONFIG:-"server.properties"}
 MAXIMUM_RAM=${MAXIMUM_RAM:-"90"}
@@ -71,7 +71,7 @@ SERVER_MEMORY_REAL=$((SERVER_MEMORY * MAXIMUM_RAM / 100))
 # Build startup command
 STARTUP_CMD="java -Xms256M -Xmx${SERVER_MEMORY_REAL}M"
 [ -n "$JVM_FLAGS" ] && STARTUP_CMD+=" $JVM_FLAGS"
-STARTUP_CMD+=" -jar $SERVER_JARFILE --nogui --port $HYTALE_PORT --world-dir $HYTALE_WORLD --config $HYTALE_CONFIG"
+STARTUP_CMD+=" -jar $SERVER_JARFILE --nogui --port $SERVER_PORT --world-dir $HYTALE_WORLD --config $HYTALE_CONFIG"
 
 echo "Starting: $STARTUP_CMD"
 
