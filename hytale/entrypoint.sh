@@ -25,19 +25,6 @@ DISABLE_SENTRY=${DISABLE_SENTRY:-"0"}
 # Create Server directory if it doesn't exist
 mkdir -p Server
 
-# Generate persistent machine-id for encrypted credentials
-MACHINE_ID_FILE=".machine-id"
-if [ ! -f "$MACHINE_ID_FILE" ]; then
-    echo "Generating persistent machine-id..."
-    # Generate UUID and remove dashes (like Wings does)
-    uuidgen | tr -d '-' | tr '[:upper:]' '[:lower:]' > "$MACHINE_ID_FILE"
-fi
-
-# Mount machine-id to /etc/machine-id (needed for Hytale encrypted credentials)
-if [ -w /etc ]; then
-    cp "$MACHINE_ID_FILE" /etc/machine-id 2>/dev/null || true
-fi
-
 # Function to download and verify file
 download_file() {
     local filename=$1
@@ -181,7 +168,10 @@ if [ "$HYTALE_AUTH_MODE" = "authenticated" ]; then
         sleep 4
         echo "/auth login device"
         cat
-    } | exec $STARTUP_CMD
+    } | $STARTUP_CMD
+    
+    # Exit with server's exit code
+    exit $?
 else
     # No auto-auth in offline mode
     # shellcheck disable=SC2086
