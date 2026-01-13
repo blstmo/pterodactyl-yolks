@@ -194,13 +194,16 @@ if [ "$HYTALE_AUTH_MODE" = "authenticated" ]; then
                 echo "Authentication required, starting device login..."
                 echo "/auth login device" >&3
                 
-                # Wait for successful auth
-                sleep 3
-                if tail -n 30 "$OUTPUT_FILE" | grep -q "Authentication successful"; then
+                # Wait for successful auth (can take up to 600 seconds for user to authenticate)
+                echo "Waiting for user to complete authentication..."
+                timeout 610 grep -q "Authentication successful!" <(tail -f "$OUTPUT_FILE" 2>/dev/null)
+                
+                if [ $? -eq 0 ]; then
                     echo "Authentication completed successfully!"
+                    sleep 2
                     echo "Setting credentials to encrypted storage..."
-                    sleep 1
                     echo "/auth persistence Encrypted" >&3
+                    sleep 1
                 fi
             else
                 echo "Server is already authenticated"
