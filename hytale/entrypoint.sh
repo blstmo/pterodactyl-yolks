@@ -43,14 +43,16 @@ download_file() {
         echo "$filename not found, downloading..."
     fi
     
-    # Download file
-    if ! curl -sSL -f "$CDN_URL/download/latest/$filename" -o "${target_path}.tmp"; then
+    # Download file with progress bar
+    echo "Downloading $filename..."
+    if ! curl -# -L -f "$CDN_URL/download/latest/$filename" -o "${target_path}.tmp"; then
         echo "ERROR: Failed to download $filename"
         rm -f "${target_path}.tmp"
         return 1
     fi
     
     # Verify SHA256
+    echo "Verifying $filename..."
     DOWNLOADED_SHA256=$(sha256sum "${target_path}.tmp" | awk '{print $1}')
     if [ "$DOWNLOADED_SHA256" != "$expected_sha256" ]; then
         echo "ERROR: SHA256 mismatch for $filename!"
@@ -60,7 +62,7 @@ download_file() {
         return 1
     fi
     
-    echo "$filename SHA256 verified"
+    echo "$filename verified successfully"
     mv "${target_path}.tmp" "$target_path"
     return 0
 }
@@ -82,6 +84,7 @@ if [ -z "$LATEST_VERSION" ]; then
 fi
 
 echo "Latest version: $LATEST_VERSION"
+echo ""
 
 # Download all required files
 echo "Downloading server files..."
@@ -92,11 +95,13 @@ if ! download_file "HytaleServer.jar" "$JAR_SHA256" "Server/HytaleServer.jar"; t
     echo "ERROR: Failed to download HytaleServer.jar"
     exit 1
 fi
+echo ""
 
 # Download HytaleServer.aot (optional, for USE_AOT_CACHE)
 AOT_SHA256=$(jq -r '.versions[] | select(.version == "'$LATEST_VERSION'") | .files[] | select(.filename == "HytaleServer.aot") | .sha256' manifest.json)
 if [ -n "$AOT_SHA256" ] && [ "$AOT_SHA256" != "null" ]; then
     download_file "HytaleServer.aot" "$AOT_SHA256" "Server/HytaleServer.aot"
+    echo ""
 fi
 
 # Download Assets.zip
@@ -105,6 +110,7 @@ if ! download_file "Assets.zip" "$ASSETS_SHA256" "Assets.zip"; then
     echo "ERROR: Failed to download Assets.zip"
     exit 1
 fi
+echo ""
 
 # Clean up manifest
 rm -f manifest.json
@@ -114,6 +120,9 @@ if [ ! -f "Server/HytaleServer.jar" ]; then
     echo "ERROR: Server JAR not found after download"
     exit 1
 fi
+
+echo "All files downloaded successfully"
+echo ""
 
 # Calculate memory
 SERVER_MEMORY_REAL=$((SERVER_MEMORY * MAXIMUM_RAM / 100))
@@ -147,6 +156,7 @@ STARTUP_CMD+=" --bind 0.0.0.0:$SERVER_PORT"
 
 echo "Starting Hytale Server v$LATEST_VERSION"
 echo "$STARTUP_CMD"
+echo ""
 
 # Only auto-auth if in authenticated mode
 if [ "$HYTALE_AUTH_MODE" = "authenticated" ]; then
@@ -179,10 +189,19 @@ if [ "$HYTALE_AUTH_MODE" = "authenticated" ]; then
             # Wait and capture output
             sleep 4
             
-            # Check if authentication is needed
-            if tail -n 20 "$OUTPUT_FILE" | grep -q -E "(Not authenticated|Session Token: Missing|Identity Token: Missing)"; then
+            # Check if authentication prompt is present
+            if tail -n 30 "$OUTPUT_FILE" | grep -q "Use '/auth login browser' or '/auth login device' to authenticate"; then
                 echo "Authentication required, starting device login..."
                 echo "/auth login device" >&3
+                
+                # Wait for successful auth
+                sleep 3
+                if tail -n 30 "$OUTPUT_FILE" | grep -q "Authentication successful"; then
+                    echo "Authentication completed successfully!"
+                    echo "Setting credentials to encrypted storage..."
+                    sleep 1
+                    echo "/auth persistence Encrypted" >&3
+                fi
             else
                 echo "Server is already authenticated"
             fi
