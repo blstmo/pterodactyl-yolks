@@ -158,30 +158,6 @@ echo "Starting Hytale Server v$LATEST_VERSION"
 echo "$STARTUP_CMD"
 echo ""
 
-# Only auto-auth if in authenticated mode
-if [ "$HYTALE_AUTH_MODE" = "authenticated" ]; then
-    # Create a named pipe to send commands to the server's stdin
-    AUTH_PIPE=$(mktemp -u)
-    mkfifo "$AUTH_PIPE"
-    
-    # Forward stdin from parent (Pterodactyl) to the pipe in background
-    cat > "$AUTH_PIPE" &
-    CAT_PID=$!
-    
-    # Send auth commands to the pipe in the background
-    (
-        sleep 8
-        echo "/auth status" > "$AUTH_PIPE"
-        sleep 4
-        echo "/auth login device" > "$AUTH_PIPE"
-    ) &
-    
-    # Execute the server process with stdin reading from the pipe
-    # This replaces the shell process, so cleanup won't run (which is fine)
-    # shellcheck disable=SC2086
-    exec $STARTUP_CMD < "$AUTH_PIPE"
-else
-    # No auto-auth in offline mode
-    # shellcheck disable=SC2086
-    exec $STARTUP_CMD
-fi
+
+exec $STARTUP_CMD
+
