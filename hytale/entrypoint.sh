@@ -160,18 +160,17 @@ echo ""
 
 # Only auto-auth if in authenticated mode
 if [ "$HYTALE_AUTH_MODE" = "authenticated" ]; then
-    # Simple approach: inject auth commands at startup, then pass through stdin
+    # Start server with exec for proper signal handling, send auth commands via background process
     # shellcheck disable=SC2086
-    {
+    (
         sleep 8
         echo "/auth status"
         sleep 4
         echo "/auth login device"
-        cat
-    } | $STARTUP_CMD
+    ) &
     
-    # Exit with server's exit code
-    exit $?
+    # Execute the server process, replacing the shell process for proper termination
+    exec $STARTUP_CMD
 else
     # No auto-auth in offline mode
     # shellcheck disable=SC2086
