@@ -17,50 +17,74 @@ HYTALE_WORLD=${HYTALE_WORLD:-"world"}
 HYTALE_CONFIG=${HYTALE_CONFIG:-"server.properties"}
 MAXIMUM_RAM=${MAXIMUM_RAM:-"90"}
 JVM_FLAGS=${JVM_FLAGS:-"-XX:+UseG1GC"}
-HYTALE_PATCHLINE=${HYTALE_PATCHLINE:-""}
-AUTH_WAIT=${AUTH_WAIT:-"15"}
+CDN_URL=${CDN_URL:-"https://ht-cdn.lagless.gg"}
 
-DOWNLOADER_PATH="./hytale-downloader-linux-amd64"
-DOWNLOADER_URL="https://downloader.hytale.com/hytale-downloader.zip"
-
-# Function to download the hytale-downloader
-download_hytale_downloader() {
-    echo "Downloading hytale-downloader..."
-    curl -sSL -o hytale-downloader.zip "$DOWNLOADER_URL"
-    if [ -f "hytale-downloader.zip" ]; then
-        unzip -o hytale-downloader.zip
-        rm -f hytale-downloader.zip
-        chmod +x "$DOWNLOADER_PATH"
-        echo "hytale-downloader installed."
-    else
-        echo "ERROR: Failed to download hytale-downloader"
-        exit 1
+# Function to download and verify server JAR
+download_server() {
+    echo "Fetching manifest from CDN..."
+    
+    # Download manifest
+    if ! curl -sSL -f "$CDN_URL/manifest.json" -o manifest.json; then
+        echo "ERROR: Failed to fetch manifest from CDN"
+        return 1
     fi
+    
+    # Extract latest version info
+    LATEST_VERSION=$(jq -r '.latest_version' manifest.json)
+    LATEST_SHA256=$(jq -r '.versions[] | select(.version == "'$LATEST_VERSION'") | .sha256' manifest.json)
+    
+    if [ -z "$LATEST_VERSION" ] || [ -z "$LATEST_SHA256" ]; then
+        echo "ERROR: Failed to parse manifest"
+        return 1
+    fi
+    
+    echo "Latest version: $LATEST_VERSION"
+    
+    # Check if we already have this version
+    if [ -f "$SERVER_JARFILE" ]; then
+        CURRENT_SHA256=$(sha256sum "$SERVER_JARFILE" | awk '{print $1}')
+        if [ "$CURRENT_SHA256" = "$LATEST_SHA256" ]; then
+            echo "Server is up to date (SHA256 match)"
+            return 0
+        fi
+        echo "Server JAR outdated, downloading new version..."
+    else
+        echo "Server JAR not found, downloading..."
+    fi
+    
+    # Download latest server JAR
+    echo "Downloading from $CDN_URL/download/latest/HytaleServer.jar"
+    if ! curl -sSL -f "$CDN_URL/download/latest/HytaleServer.jar" -o "${SERVER_JARFILE}.tmp"; then
+        echo "ERROR: Failed to download server JAR"
+        rm -f "${SERVER_JARFILE}.tmp"
+        return 1
+    fi
+    
+    # Verify SHA256
+    DOWNLOADED_SHA256=$(sha256sum "${SERVER_JARFILE}.tmp" | awk '{print $1}')
+    if [ "$DOWNLOADED_SHA256" != "$LATEST_SHA256" ]; then
+        echo "ERROR: SHA256 mismatch!"
+        echo "Expected: $LATEST_SHA256"
+        echo "Got: $DOWNLOADED_SHA256"
+        rm -f "${SERVER_JARFILE}.tmp"
+        return 1
+    fi
+    
+    echo "SHA256 verified successfully"
+    mv "${SERVER_JARFILE}.tmp" "$SERVER_JARFILE"
+    echo "Server JAR downloaded: $LATEST_VERSION"
+    
+    # Clean up
+    rm -f manifest.json
+    return 0
 }
 
-# Check if downloader exists, if not download it
-if [ ! -f "$DOWNLOADER_PATH" ]; then
-    echo "hytale-downloader not found, downloading..."
-    download_hytale_downloader
-fi
-
-# Check for downloader updates
-echo "Checking for updates..."
-$DOWNLOADER_PATH -check-update
-
-# Download/update server if jar is missing
-if [ ! -f "$SERVER_JARFILE" ]; then
-    echo "Server JAR not found, downloading..."
-    if [ -n "$HYTALE_PATCHLINE" ]; then
-        $DOWNLOADER_PATH -patchline "$HYTALE_PATCHLINE"
-    else
-        $DOWNLOADER_PATH
-    fi
-fi
+# Download/update server
+download_server
 
 # Verify server jar exists
 if [ ! -f "$SERVER_JARFILE" ]; then
-    echo "ERROR: Failed to download $SERVER_JARFILE"
+    echo "ERROR: Server JAR not found after download attempt"
     exit 1
 fi
 
@@ -74,12 +98,5 @@ STARTUP_CMD+=" -jar $SERVER_JARFILE --nogui --port $SERVER_PORT --world-dir $HYT
 
 echo "Starting: $STARTUP_CMD"
 
-# Auto-auth: wait for server, check status, login if needed, then pass through stdin
 # shellcheck disable=SC2086
-{
-    sleep "$AUTH_WAIT"
-    echo "/auth status"
-    sleep 2
-    echo "/auth login device"
-    cat
-} | exec $STARTUP_CMD
+exec $STARTUP_CMD

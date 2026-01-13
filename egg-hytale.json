@@ -27,7 +27,7 @@
     },
     "scripts": {
         "installation": {
-            "script": "#!/bin/bash\r\ncd /mnt/server\r\n\r\necho \"Downloading hytale-downloader...\"\r\ncurl -sSL -o hytale-downloader.zip https://downloader.hytale.com/hytale-downloader.zip\r\n\r\nif [ ! -f \"hytale-downloader.zip\" ]; then\r\n    echo \"ERROR: Failed to download hytale-downloader.zip\"\r\n    exit 1\r\nfi\r\n\r\nunzip -o hytale-downloader.zip\r\nrm -f hytale-downloader.zip\r\nchmod +x ./hytale-downloader-linux-amd64\r\n\r\necho \"Installation complete. The server JAR will be downloaded on first startup.\"",
+            "script": "#!/bin/bash\r\ncd /mnt/server\r\n\r\necho \"Installation complete.\"\r\necho \"The server JAR will be downloaded from CDN on first startup.\"",
             "container": "ghcr.io/pterodactyl/installers:debian",
             "entrypoint": "bash"
         }
@@ -84,13 +84,13 @@
             "field_type": "text"
         },
         {
-            "name": "Patchline",
-            "description": "Download channel for Hytale server. Leave empty for stable release, or set to 'pre-release' for pre-release builds.",
-            "env_variable": "HYTALE_PATCHLINE",
-            "default_value": "",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "nullable|string|max:50",
+            "name": "CDN URL",
+            "description": "Hytale CDN URL for downloading server files.",
+            "env_variable": "CDN_URL",
+            "default_value": "https://ht-cdn.lagless.gg",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "required|string|max:255",
             "field_type": "text"
         },
         {
