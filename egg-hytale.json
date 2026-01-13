@@ -18,12 +18,12 @@
         "Java 21": "ghcr.io/blstmo/pterodactyl-yolks:hytale_21"
     },
     "file_denylist": [],
-    "startup": "java -Xms256M -Xmx$(({{SERVER_MEMORY}}*{{MAXIMUM_RAM}}/100))M {{JVM_FLAGS}} -jar {{SERVER_JARFILE}} --nogui --port {{SERVER_PORT}} --world-dir {{HYTALE_WORLD}} --config {{HYTALE_CONFIG}}",
+    "startup": "java $( ((USE_AOT_CACHE)) && printf %s \"-XX:AOTCache=Server/HytaleServer.aot\" ) -Xms128M -Xmx$(({{SERVER_MEMORY}}*{{MAXIMUM_RAM}}/100))M {{JVM_FLAGS}} -jar Server/HytaleServer.jar $( ((HYTALE_ALLOW_OP)) && printf %s \"--allow-op\" ) $( ((HYTALE_ACCEPT_EARLY_PLUGINS)) && printf %s \"--accept-early-plugins\" ) $( ((DISABLE_SENTRY)) && printf %s \"--disable-sentry\" ) --auth-mode {{HYTALE_AUTH_MODE}} --assets Assets.zip --bind 0.0.0.0:{{SERVER_PORT}}",
     "config": {
-        "files": "{\r\n    \"server.properties\": {\r\n        \"parser\": \"properties\",\r\n        \"find\": {\r\n            \"server-port\": \"{{server.build.default.port}}\"\r\n        }\r\n    }\r\n}",
-        "startup": "{\r\n    \"done\": [\r\n        \"Server started\",\r\n        \"Listening on\",\r\n        \"Server listening on\",\r\n        \"Server is ready\"\r\n    ]\r\n}",
+        "files": "{}",
+        "startup": "{\r\n    \"done\": \"Hytale Server Booted\"\r\n}",
         "logs": "{}",
-        "stop": "stop"
+        "stop": "/stop"
     },
     "scripts": {
         "installation": {
@@ -33,36 +33,6 @@
         }
     },
     "variables": [
-        {
-            "name": "Server Jar File",
-            "description": "The name of the Hytale server jar file.",
-            "env_variable": "SERVER_JARFILE",
-            "default_value": "HytaleServer.jar",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
-            "field_type": "text"
-        },
-        {
-            "name": "World Directory",
-            "description": "The directory where world data is stored.",
-            "env_variable": "HYTALE_WORLD",
-            "default_value": "world",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "required|string|max:50",
-            "field_type": "text"
-        },
-        {
-            "name": "Config File",
-            "description": "The server configuration file name.",
-            "env_variable": "HYTALE_CONFIG",
-            "default_value": "server.properties",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "required|string|max:50",
-            "field_type": "text"
-        },
         {
             "name": "Maximum Ram Percentage",
             "description": "Percentage of allocated server RAM to use for Hytale (50-100%).",
@@ -75,12 +45,72 @@
         },
         {
             "name": "JVM Flags",
-            "description": "Additional JVM flags. The G1 garbage collector (-XX:+UseG1GC) is recommended for better performance.",
+            "description": "Additional JVM flags for performance tuning.",
             "env_variable": "JVM_FLAGS",
-            "default_value": "-XX:+UseG1GC",
+            "default_value": "",
             "user_viewable": true,
             "user_editable": true,
             "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Patchline",
+            "description": "The branch of Hytale to install.",
+            "env_variable": "HYTALE_PATCHLINE",
+            "default_value": "release",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:release,pre-release",
+            "field_type": "text"
+        },
+        {
+            "name": "Auth Mode",
+            "description": "Authentication mode.",
+            "env_variable": "HYTALE_AUTH_MODE",
+            "default_value": "authenticated",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:authenticated,offline",
+            "field_type": "text"
+        },
+        {
+            "name": "Allow operators",
+            "description": "Allow operators to use server commands.",
+            "env_variable": "HYTALE_ALLOW_OP",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Accept Early Plugins",
+            "description": "Hytale warns that loading early plugins is unsupported and may cause stability issues.",
+            "env_variable": "HYTALE_ACCEPT_EARLY_PLUGINS",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Use Ahead-of-Time Cache",
+            "description": "Hytale provides a pre-trained AOT Java cache which can significantly improve boot times.",
+            "env_variable": "USE_AOT_CACHE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Disable Sentry",
+            "description": "Hytale uses Sentry to track crashes. Disable Sentry during active plugin development.",
+            "env_variable": "DISABLE_SENTRY",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
             "field_type": "text"
         },
         {
