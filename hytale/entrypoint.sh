@@ -173,48 +173,15 @@ echo ""
 
 # Only auto-auth if in authenticated mode
 if [ "$HYTALE_AUTH_MODE" = "authenticated" ]; then
-    # Create named pipes and temp files
-    INPUT_FIFO="/tmp/hytale_input_$$"
-    OUTPUT_LOG="/tmp/hytale_output_$$.log"
-    mkfifo "$INPUT_FIFO"
-    touch "$OUTPUT_LOG"
-    
-    # Cleanup function
-    cleanup() {
-        rm -f "$INPUT_FIFO" "$OUTPUT_LOG"
-    }
-    trap cleanup EXIT
-    
-    # Start output monitor that injects auth commands
-    (
-        # Wait for server boot
-        timeout 120 grep -q "Hytale Server Booted!" <(tail -f "$OUTPUT_LOG" 2>/dev/null) || exit 0
-        
-        sleep 2
-        echo "/auth status" >> "$INPUT_FIFO"
-        
-        # Wait and check output
-        sleep 4
-        if tail -n 30 "$OUTPUT_LOG" 2>/dev/null | grep -q "Use '/auth login browser' or '/auth login device' to authenticate"; then
-            echo "/auth login device" >> "$INPUT_FIFO"
-        fi
-    ) &
-    MONITOR_PID=$!
-    
-    # Pass stdin to input FIFO in background
-    cat > "$INPUT_FIFO" &
-    STDIN_PID=$!
-    
-    # Start server with input from FIFO, tee output to log and console
+    # Simple approach: inject auth commands at startup, then pass through stdin
     # shellcheck disable=SC2086
-    $STARTUP_CMD < "$INPUT_FIFO" 2>&1 | tee "$OUTPUT_LOG"
-    SERVER_EXIT=$?
-    
-    # Cleanup background processes
-    kill $MONITOR_PID $STDIN_PID 2>/dev/null
-    wait $MONITOR_PID $STDIN_PID 2>/dev/null
-    
-    exit $SERVER_EXIT
+    {
+        sleep 8
+        echo "/auth status"
+        sleep 4
+        echo "/auth login device"
+        cat
+    } | exec $STARTUP_CMD
 else
     # No auto-auth in offline mode
     # shellcheck disable=SC2086
