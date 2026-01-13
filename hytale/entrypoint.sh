@@ -160,71 +160,39 @@ echo ""
 
 # Only auto-auth if in authenticated mode
 if [ "$HYTALE_AUTH_MODE" = "authenticated" ]; then
-    # Create pipes for server communication
-    INPUT_PIPE="/tmp/hytale_input_$$"
-    OUTPUT_FILE="/tmp/hytale_output_$$"
-    mkfifo "$INPUT_PIPE"
+    # Create temp file for output monitoring
+    OUTPUT_LOG="/tmp/hytale_output_$$.log"
+    CMD_PIPE="/tmp/hytale_cmd_$$"
+    mkfifo "$CMD_PIPE"
     
-    # Start server in background with input from pipe
-    # shellcheck disable=SC2086
-    $STARTUP_CMD < "$INPUT_PIPE" 2>&1 | tee "$OUTPUT_FILE" &
-    SERVER_PID=$!
-    
-    # Open pipe for writing
-    exec 3>"$INPUT_PIPE"
-    
-    # Background process to handle auto-auth
+    # Start auto-auth monitor in background
     (
         # Wait for server boot
-        echo "Waiting for server to boot..."
-        timeout 60 grep -q "Hytale Server Booted!" <(tail -f "$OUTPUT_FILE" 2>/dev/null)
+        timeout 120 grep -q "Hytale Server Booted!" <(tail -f "$OUTPUT_LOG" 2>/dev/null)
         
         if [ $? -eq 0 ]; then
-            echo "Server booted, checking authentication..."
             sleep 2
+            echo "/auth status" > "$CMD_PIPE"
             
-            # Send auth status command
-            echo "/auth status" >&3
-            
-            # Wait and capture output
+            # Wait a bit and check if auth is needed
             sleep 4
-            
-            # Check if authentication prompt is present
-            if tail -n 30 "$OUTPUT_FILE" | grep -q "Use '/auth login browser' or '/auth login device' to authenticate"; then
-                echo "Authentication required, starting device login..."
-                echo "/auth login device" >&3
-                
-                # Wait for successful auth (can take up to 600 seconds for user to authenticate)
-                echo "Waiting for user to complete authentication..."
-                timeout 610 grep -q "Authentication successful!" <(tail -f "$OUTPUT_FILE" 2>/dev/null)
-                
-                if [ $? -eq 0 ]; then
-                    echo "Authentication completed successfully!"
-                    sleep 2
-                    echo "Setting credentials to encrypted storage..."
-                    echo "/auth persistence Encrypted" >&3
-                    sleep 1
-                fi
-            else
-                echo "Server is already authenticated"
+            if tail -n 30 "$OUTPUT_LOG" 2>/dev/null | grep -q "Use '/auth login browser' or '/auth login device' to authenticate"; then
+                echo "/auth login device" > "$CMD_PIPE"
             fi
         fi
         
-        # Now pass stdin through to the server
-        cat >&3
+        # Keep pipe open
+        sleep infinity > "$CMD_PIPE"
     ) &
-    AUTH_PID=$!
+    MONITOR_PID=$!
     
-    # Wait for server process
-    wait $SERVER_PID
-    SERVER_EXIT=$?
+    # Merge stdin with command pipe, tee output to log file
+    # shellcheck disable=SC2086
+    (cat "$CMD_PIPE" & cat) | $STARTUP_CMD 2>&1 | tee "$OUTPUT_LOG"
     
     # Cleanup
-    kill $AUTH_PID 2>/dev/null
-    exec 3>&-
-    rm -f "$INPUT_PIPE" "$OUTPUT_FILE"
-    
-    exit $SERVER_EXIT
+    kill $MONITOR_PID 2>/dev/null
+    rm -f "$OUTPUT_LOG" "$CMD_PIPE"
 else
     # No auto-auth in offline mode
     # shellcheck disable=SC2086
