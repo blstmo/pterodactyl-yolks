@@ -25,6 +25,19 @@ DISABLE_SENTRY=${DISABLE_SENTRY:-"0"}
 # Create Server directory if it doesn't exist
 mkdir -p Server
 
+# Generate persistent machine-id for encrypted credentials
+MACHINE_ID_FILE=".machine-id"
+if [ ! -f "$MACHINE_ID_FILE" ]; then
+    echo "Generating persistent machine-id..."
+    # Generate UUID and remove dashes (like Wings does)
+    uuidgen | tr -d '-' | tr '[:upper:]' '[:lower:]' > "$MACHINE_ID_FILE"
+fi
+
+# Mount machine-id to /etc/machine-id (needed for Hytale encrypted credentials)
+if [ -w /etc ]; then
+    cp "$MACHINE_ID_FILE" /etc/machine-id 2>/dev/null || true
+fi
+
 # Function to download and verify file
 download_file() {
     local filename=$1
@@ -160,39 +173,48 @@ echo ""
 
 # Only auto-auth if in authenticated mode
 if [ "$HYTALE_AUTH_MODE" = "authenticated" ]; then
-    # Create temp file for output monitoring
+    # Create named pipes and temp files
+    INPUT_FIFO="/tmp/hytale_input_$$"
     OUTPUT_LOG="/tmp/hytale_output_$$.log"
-    CMD_PIPE="/tmp/hytale_cmd_$$"
-    mkfifo "$CMD_PIPE"
+    mkfifo "$INPUT_FIFO"
+    touch "$OUTPUT_LOG"
     
-    # Start auto-auth monitor in background
+    # Cleanup function
+    cleanup() {
+        rm -f "$INPUT_FIFO" "$OUTPUT_LOG"
+    }
+    trap cleanup EXIT
+    
+    # Start output monitor that injects auth commands
     (
         # Wait for server boot
-        timeout 120 grep -q "Hytale Server Booted!" <(tail -f "$OUTPUT_LOG" 2>/dev/null)
+        timeout 120 grep -q "Hytale Server Booted!" <(tail -f "$OUTPUT_LOG" 2>/dev/null) || exit 0
         
-        if [ $? -eq 0 ]; then
-            sleep 2
-            echo "/auth status" > "$CMD_PIPE"
-            
-            # Wait a bit and check if auth is needed
-            sleep 4
-            if tail -n 30 "$OUTPUT_LOG" 2>/dev/null | grep -q "Use '/auth login browser' or '/auth login device' to authenticate"; then
-                echo "/auth login device" > "$CMD_PIPE"
-            fi
+        sleep 2
+        echo "/auth status" >> "$INPUT_FIFO"
+        
+        # Wait and check output
+        sleep 4
+        if tail -n 30 "$OUTPUT_LOG" 2>/dev/null | grep -q "Use '/auth login browser' or '/auth login device' to authenticate"; then
+            echo "/auth login device" >> "$INPUT_FIFO"
         fi
-        
-        # Keep pipe open
-        sleep infinity > "$CMD_PIPE"
     ) &
     MONITOR_PID=$!
     
-    # Merge stdin with command pipe, tee output to log file
-    # shellcheck disable=SC2086
-    (cat "$CMD_PIPE" & cat) | $STARTUP_CMD 2>&1 | tee "$OUTPUT_LOG"
+    # Pass stdin to input FIFO in background
+    cat > "$INPUT_FIFO" &
+    STDIN_PID=$!
     
-    # Cleanup
-    kill $MONITOR_PID 2>/dev/null
-    rm -f "$OUTPUT_LOG" "$CMD_PIPE"
+    # Start server with input from FIFO, tee output to log and console
+    # shellcheck disable=SC2086
+    $STARTUP_CMD < "$INPUT_FIFO" 2>&1 | tee "$OUTPUT_LOG"
+    SERVER_EXIT=$?
+    
+    # Cleanup background processes
+    kill $MONITOR_PID $STDIN_PID 2>/dev/null
+    wait $MONITOR_PID $STDIN_PID 2>/dev/null
+    
+    exit $SERVER_EXIT
 else
     # No auto-auth in offline mode
     # shellcheck disable=SC2086
