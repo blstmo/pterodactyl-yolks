@@ -148,5 +148,63 @@ STARTUP_CMD+=" --bind 0.0.0.0:$SERVER_PORT"
 echo "Starting Hytale Server v$LATEST_VERSION"
 echo "$STARTUP_CMD"
 
-# shellcheck disable=SC2086
-exec $STARTUP_CMD
+# Only auto-auth if in authenticated mode
+if [ "$HYTALE_AUTH_MODE" = "authenticated" ]; then
+    # Create pipes for server communication
+    INPUT_PIPE="/tmp/hytale_input_$$"
+    OUTPUT_FILE="/tmp/hytale_output_$$"
+    mkfifo "$INPUT_PIPE"
+    
+    # Start server in background with input from pipe
+    # shellcheck disable=SC2086
+    $STARTUP_CMD < "$INPUT_PIPE" 2>&1 | tee "$OUTPUT_FILE" &
+    SERVER_PID=$!
+    
+    # Open pipe for writing
+    exec 3>"$INPUT_PIPE"
+    
+    # Background process to handle auto-auth
+    (
+        # Wait for server boot
+        echo "Waiting for server to boot..."
+        timeout 60 grep -q "Hytale Server Booted!" <(tail -f "$OUTPUT_FILE" 2>/dev/null)
+        
+        if [ $? -eq 0 ]; then
+            echo "Server booted, checking authentication..."
+            sleep 2
+            
+            # Send auth status command
+            echo "/auth status" >&3
+            
+            # Wait and capture output
+            sleep 4
+            
+            # Check if authentication is needed
+            if tail -n 20 "$OUTPUT_FILE" | grep -q -E "(Not authenticated|Session Token: Missing|Identity Token: Missing)"; then
+                echo "Authentication required, starting device login..."
+                echo "/auth login device" >&3
+            else
+                echo "Server is already authenticated"
+            fi
+        fi
+        
+        # Now pass stdin through to the server
+        cat >&3
+    ) &
+    AUTH_PID=$!
+    
+    # Wait for server process
+    wait $SERVER_PID
+    SERVER_EXIT=$?
+    
+    # Cleanup
+    kill $AUTH_PID 2>/dev/null
+    exec 3>&-
+    rm -f "$INPUT_PIPE" "$OUTPUT_FILE"
+    
+    exit $SERVER_EXIT
+else
+    # No auto-auth in offline mode
+    # shellcheck disable=SC2086
+    exec $STARTUP_CMD
+fi
